@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@layer base {
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc; /* slate-50: sáng sủa, sạch sẽ, cao cấp */
+        color: #0f172a; /* slate-900: chữ tương phản cao, dễ đọc */
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Quy chuẩn chung: Toàn bộ button, link, thẻ click đều có cursor pointer bàn tay */
+    button,
+    [role="button"],
+    a,
+    input[type="submit"],
+    input[type="button"],
+    input[type="checkbox"],
+    input[type="radio"],
+    select {
+        cursor: pointer;
+    }
+}

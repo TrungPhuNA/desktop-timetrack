@@ -143,3 +143,24 @@ export interface SaveSettingsInput {
     bank_account_name: string;
     enable_desktop_notify: boolean;
 }
+
+export interface FocusSettings {
+    id: number;
+    enabled: boolean;
+    message: string;
+    start_time: string;        // HH:mm, ví dụ "09:00"
+    end_time: string;          // HH:mm, ví dụ "18:00"
+    interval_minutes: number;  // 30 hoặc 60
+    days_of_week: string;      // "1,2,3,4,5" (T2 -> T6)
+    sound_enabled: boolean;
+}
+
+export interface SaveFocusSettingsInput {
+    enabled: boolean;
+    message: string;
+    start_time: string;
+    end_time: string;
+    interval_minutes: number;
+    days_of_week: string;
+    sound_enabled: boolean;
+}

@@ -173,3 +173,29 @@ pub struct SaveSettingsInput {
     pub bank_account_name: String,
     pub enable_desktop_notify: bool,
 }
+
+/// Cấu hình tính năng Nhắc nhở tập trung (Focus Reminder)
+/// Mục đích: Nhắc nhở người dùng "Im lặng làm việc" theo khung giờ và chu kỳ cài đặt
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FocusSettings {
+    pub id: i64,
+    pub enabled: bool,
+    pub message: String,
+    pub start_time: String,        // Định dạng "HH:mm", ví dụ: "09:00"
+    pub end_time: String,          // Định dạng "HH:mm", ví dụ: "18:00"
+    pub interval_minutes: i64,     // Ví dụ: 30 hoặc 60
+    pub days_of_week: String,      // Ví dụ: "1,2,3,4,5" (T2 -> T6)
+    pub sound_enabled: bool,
+}
+
+/// DTO Input khi lưu cấu hình Focus Reminder
+#[derive(Debug, Deserialize)]
+pub struct SaveFocusSettingsInput {
+    pub enabled: bool,
+    pub message: String,
+    pub start_time: String,
+    pub end_time: String,
+    pub interval_minutes: i64,
+    pub days_of_week: String,
+    pub sound_enabled: bool,
+}

@@ -48,6 +48,8 @@ pub fn run() {
             cmd_get_project_debt_summary,
             cmd_get_settings,
             cmd_save_settings,
+            cmd_get_focus_settings,
+            cmd_save_focus_settings,
         ])
         .run(tauri::generate_context!())
         .expect("Lỗi khi khởi chạy ứng dụng TimeTrack");

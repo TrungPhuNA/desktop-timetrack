@@ -1,4 +1,5 @@
 pub mod entries;
+pub mod focus;
 pub mod payments;
 pub mod projects;
 pub mod settings;
@@ -96,6 +97,21 @@ impl Database {
             [],
         )?;
 
+        // 5. Bảng lưu cấu hình Nhắc nhở tập trung (Focus Reminder: Im lặng làm việc)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS focus_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                enabled INTEGER NOT NULL DEFAULT 1,
+                message TEXT NOT NULL DEFAULT 'Im lặng làm việc',
+                start_time TEXT NOT NULL DEFAULT '09:00',
+                end_time TEXT NOT NULL DEFAULT '18:00',
+                interval_minutes INTEGER NOT NULL DEFAULT 30,
+                days_of_week TEXT NOT NULL DEFAULT '1,2,3,4,5',
+                sound_enabled INTEGER NOT NULL DEFAULT 1
+            );",
+            [],
+        )?;
+
         Ok(())
     }
 
@@ -110,6 +126,15 @@ impl Database {
                 id, default_hourly_rate, currency_symbol, bank_name,
                 bank_account_no, bank_account_name, enable_desktop_notify
             ) VALUES (1, 220000.0, 'đ', 'VPBank', '131325177', 'PHAN TRUNG PHÚ', 1);",
+            [],
+        )?;
+
+        // Cài đặt Nhắc nhở tập trung mặc định: 09:00 - 18:00, 30 phút/lần, Thứ 2 -> Thứ 6
+        conn.execute(
+            "INSERT OR IGNORE INTO focus_settings (
+                id, enabled, message, start_time, end_time,
+                interval_minutes, days_of_week, sound_enabled
+            ) VALUES (1, 1, 'Im lặng làm việc', '09:00', '18:00', 30, '1,2,3,4,5', 1);",
             [],
         )?;
 

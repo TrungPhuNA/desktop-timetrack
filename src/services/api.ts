@@ -4,10 +4,12 @@ import {
     CreatePaymentInput,
     CreateProjectInput,
     CreateTimeEntryInput,
+    FocusSettings,
     MonthlySummary,
     Payment,
     Project,
     ProjectDebtItem,
+    SaveFocusSettingsInput,
     SaveSettingsInput,
     TimeEntry,
     UpdatePaymentInput,
@@ -84,5 +86,13 @@ export const api = {
     },
     saveSettings: async (input: SaveSettingsInput): Promise<void> => {
         return invoke<void>("cmd_save_settings", { input });
+    },
+
+    // Focus Reminder Settings
+    getFocusSettings: async (): Promise<FocusSettings> => {
+        return invoke<FocusSettings>("cmd_get_focus_settings");
+    },
+    saveFocusSettings: async (input: SaveFocusSettingsInput): Promise<void> => {
+        return invoke<void>("cmd_save_focus_settings", { input });
     },
 };

@@ -3,8 +3,9 @@ use tauri::State;
 use crate::db::Database;
 use crate::models::{
     AppSettings, CreatePaymentInput, CreateProjectInput, CreateTimeEntryInput,
-    MonthlySummary, Payment, Project, ProjectDebtItem, SaveSettingsInput,
-    TimeEntry, UpdatePaymentInput, UpdateProjectInput, UpdateTimeEntryInput,
+    FocusSettings, MonthlySummary, Payment, Project, ProjectDebtItem,
+    SaveFocusSettingsInput, SaveSettingsInput, TimeEntry, UpdatePaymentInput,
+    UpdateProjectInput, UpdateTimeEntryInput,
 };
 
 // ==========================================
@@ -170,4 +171,25 @@ pub fn cmd_save_settings(
 ) -> Result<(), String> {
     db.save_settings(input)
         .map_err(|e| format!("Lỗi lưu cài đặt hệ thống: {}", e))
+}
+
+// ==========================================
+// IPC COMMANDS NHẮC NHỞ TẬP TRUNG (FOCUS REMINDER)
+// ==========================================
+
+#[tauri::command]
+pub fn cmd_get_focus_settings(
+    db: State<'_, Database>,
+) -> Result<FocusSettings, String> {
+    db.get_focus_settings()
+        .map_err(|e| format!("Lỗi tải cài đặt nhắc nhở tập trung: {}", e))
+}
+
+#[tauri::command]
+pub fn cmd_save_focus_settings(
+    db: State<'_, Database>,
+    input: SaveFocusSettingsInput,
+) -> Result<(), String> {
+    db.save_focus_settings(input)
+        .map_err(|e| format!("Lỗi lưu cài đặt nhắc nhở tập trung: {}", e))
 }

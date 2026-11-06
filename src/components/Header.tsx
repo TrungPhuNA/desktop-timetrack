@@ -8,6 +8,7 @@ import {
     Plus,
     Settings,
     Timer,
+    VolumeX,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -18,6 +19,8 @@ interface HeaderProps {
     onOpenProjectModal: () => void;
     onOpenDebtModal: () => void;
     onOpenSettingsModal: () => void;
+    onOpenFocusModal: () => void;
+    isFocusEnabled?: boolean;
 }
 
 /**
@@ -33,6 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
     onOpenProjectModal,
     onOpenDebtModal,
     onOpenSettingsModal,
+    onOpenFocusModal,
+    isFocusEnabled = true,
 }) => {
     // Chuyển lùi 1 tháng
     const handlePrevMonth = () => {
@@ -135,6 +140,24 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                         <FolderKanban className="h-4 w-4 text-indigo-600 shrink-0" />
                         <span>Dự Án</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onOpenFocusModal}
+                        aria-label="Cài đặt nhắc nhở tập trung Im lặng làm việc"
+                        title="Cài đặt nhắc nhở: Im lặng làm việc"
+                        className={`inline-flex h-9 items-center space-x-1.5 rounded-lg border px-3 text-xs font-bold transition-colors shadow-2xs cursor-pointer whitespace-nowrap ${
+                            isFocusEnabled
+                                ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/80"
+                                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                        }`}
+                    >
+                        <VolumeX className={`h-4 w-4 shrink-0 ${isFocusEnabled ? "text-indigo-600" : "text-slate-400"}`} />
+                        <span>Im Lặng Làm Việc</span>
+                        {isFocusEnabled && (
+                            <span className="flex h-2 w-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                        )}
                     </button>
 
                     <button

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Header } from "./components/Header";
 import { MetricsCards } from "./components/MetricsCards";
 import { TimeTable } from "./components/TimeTable";
@@ -9,15 +9,20 @@ import { DebtModal } from "./components/DebtModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { TimeTableSkeleton } from "./components/TimeTableSkeleton";
+import { FocusReminderModal } from "./components/FocusReminderModal";
+import { FocusAlertBanner } from "./components/FocusAlertBanner";
+import { checkFocusSchedule, FocusSoundTheme, playFocusChimeSound, sendNativeFocusNotification } from "./services/focusScheduler";
 import { api } from "./services/api";
 import {
     AppSettings,
     CreatePaymentInput,
     CreateProjectInput,
     CreateTimeEntryInput,
+    FocusSettings,
     MonthlySummary,
     Payment,
     Project,
+    SaveFocusSettingsInput,
     SaveSettingsInput,
     TimeEntry,
     UpdateProjectInput,
@@ -32,11 +37,21 @@ interface ConfirmState {
 }
 
 /**
+ * Lấy tháng hiện tại theo thời gian thực tế của hệ điều hành (Định dạng "YYYY-MM")
+ */
+const getCurrentRealMonth = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+};
+
+/**
  * Ứng dụng chính TimeTrack - Giao diện Sáng Sang Trọng (Clean Light Theme)
  */
 export default function App() {
-    // Tháng hiện tại được chọn (Mặc định chọn 2026-10 theo dữ liệu công việc hiện tại của Anh Phú)
-    const [currentMonth, setCurrentMonth] = useState<string>("2026-10");
+    // Tháng hiện tại được chọn (Tự động lấy tháng thực tế hiện tại của hệ thống)
+    const [currentMonth, setCurrentMonth] = useState<string>(getCurrentRealMonth);
 
     // Trạng thái dữ liệu
     const [projects, setProjects] = useState<Project[]>([]);
@@ -54,6 +69,12 @@ export default function App() {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState<boolean>(false);
     const [isDebtModalOpen, setIsDebtModalOpen] = useState<boolean>(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+    const [isFocusModalOpen, setIsFocusModalOpen] = useState<boolean>(false);
+
+    // Trạng thái Nhắc nhở tập trung (Focus Reminder: Im lặng làm việc)
+    const [focusSettings, setFocusSettings] = useState<FocusSettings | null>(null);
+    const [activeFocusAlert, setActiveFocusAlert] = useState<string | null>(null);
+    const lastTriggeredSlotRef = useRef<string | null>(null);
 
     // Trạng thái ConfirmModal (Xác nhận xóa an toàn)
     const [confirmState, setConfirmState] = useState<ConfirmState>({
@@ -67,12 +88,13 @@ export default function App() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [projData, entryData, payData, sumData, settData] = await Promise.all([
+            const [projData, entryData, payData, sumData, settData, focusData] = await Promise.all([
                 api.getProjects(true),
                 api.getTimeEntries(currentMonth, selectedProjectId || undefined),
                 api.getPayments(currentMonth, selectedProjectId || undefined),
                 api.getMonthlySummary(currentMonth, selectedProjectId || undefined),
                 api.getSettings(),
+                api.getFocusSettings(),
             ]);
 
             setProjects(projData);
@@ -80,6 +102,7 @@ export default function App() {
             setPayments(payData);
             setSummary(sumData);
             setSettings(settData);
+            setFocusSettings(focusData);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu TimeTrack:", error);
         } finally {
@@ -91,6 +114,49 @@ export default function App() {
     useEffect(() => {
         loadData();
     }, [currentMonth, selectedProjectId]);
+
+    // Bộ đếm kiểm tra định kỳ tính năng nhắc nhở "Im lặng làm việc" (chạy mỗi 20 giây)
+    useEffect(() => {
+        if (!focusSettings || !focusSettings.enabled) return;
+
+        const checkInterval = () => {
+            const { shouldTrigger, currentSlotKey } = checkFocusSchedule(focusSettings, lastTriggeredSlotRef.current);
+            if (shouldTrigger && currentSlotKey) {
+                lastTriggeredSlotRef.current = currentSlotKey;
+
+                // 1. Âm thanh chuông dịu nhẹ nếu bật
+                if (focusSettings.sound_enabled) {
+                    playFocusChimeSound();
+                }
+
+                // 2. Gửi thông báo hệ thống Native OS
+                sendNativeFocusNotification("TimeTrack - Nhắc Nhở Tập Trung", `🤫 ${focusSettings.message}`);
+
+                // 3. Hiển thị alert banner trên giao diện
+                setActiveFocusAlert(focusSettings.message);
+            }
+        };
+
+        checkInterval();
+        const intervalId = setInterval(checkInterval, 20000);
+        return () => clearInterval(intervalId);
+    }, [focusSettings]);
+
+    // Xử lý lưu cấu hình nhắc nhở tập trung
+    const handleSaveFocusSettings = async (input: SaveFocusSettingsInput) => {
+        await api.saveFocusSettings(input);
+        const updated = await api.getFocusSettings();
+        setFocusSettings(updated);
+    };
+
+    // Xử lý thử nghiệm bắn thông báo ngay lập tức
+    const handleTestFocusNotification = (testMsg: string, sound: boolean, theme: FocusSoundTheme = "crystal") => {
+        if (sound) {
+            playFocusChimeSound(theme);
+        }
+        sendNativeFocusNotification("TimeTrack - Thử Nghiệm Nhắc Nhở", `🤫 ${testMsg}`);
+        setActiveFocusAlert(testMsg);
+    };
 
     // ==========================================
     // CÁC THAO TÁC CRUD PHIÊN LÀM VIỆC (TIME ENTRY)
@@ -223,6 +289,8 @@ export default function App() {
                 onOpenProjectModal={() => setIsProjectModalOpen(true)}
                 onOpenDebtModal={() => setIsDebtModalOpen(true)}
                 onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+                onOpenFocusModal={() => setIsFocusModalOpen(true)}
+                isFocusEnabled={focusSettings?.enabled}
             />
 
             {/* Nội dung chính */}
@@ -302,6 +370,23 @@ export default function App() {
                 settings={settings}
                 onSaveSettings={handleSaveSettings}
             />
+
+            {/* Modal Cài Đặt Nhắc Nhở Tập Trung (Im lặng làm việc) */}
+            <FocusReminderModal
+                isOpen={isFocusModalOpen}
+                onClose={() => setIsFocusModalOpen(false)}
+                settings={focusSettings}
+                onSave={handleSaveFocusSettings}
+                onTestNotification={handleTestFocusNotification}
+            />
+
+            {/* Banner Cảnh Báo "Im Lặng Làm Việc" Nổi Bật Trên Màn Hình */}
+            {activeFocusAlert && (
+                <FocusAlertBanner
+                    message={activeFocusAlert}
+                    onDismiss={() => setActiveFocusAlert(null)}
+                />
+            )}
 
             {/* Confirm Modal an toàn thay thế window.confirm */}
             <ConfirmModal

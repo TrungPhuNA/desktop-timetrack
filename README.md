@@ -17,14 +17,24 @@
 - **Ghi nhận thanh toán linh hoạt**: Hỗ trợ khách trả nhiều đợt trong tháng, ghi nhận lịch sử ngày giờ và nội dung chuyển khoản chi tiết.
 - **Sổ theo dõi công nợ toàn thời gian**: Báo cáo tổng thể toàn bộ doanh thu, số tiền đã nhận và số nợ còn lại của từng khách hàng.
 
-### 3. Tối ưu Trải nghiệm & Tương tác
+### 3. Nhắc Nhở Tập Trung (Im Lặng Làm Việc)
+- **Cảnh báo định kỳ thông minh**: Tự động cảnh báo với thông điệp *"🤫 Im lặng làm việc"* trong khung giờ hành chính **từ 09:00 đến 18:00**.
+- **Chu kỳ linh hoạt**: Tùy chỉnh thông báo mỗi **30 phút** hoặc **60 phút (1 tiếng)** một lần.
+- **Áp dụng các ngày làm việc**: Mặc định từ **Thứ 2 đến Thứ 6**, tự động nghỉ ngơi Thứ 7 & Chủ Nhật (có thể tùy chọn).
+- **Đa phương thức thông báo**:
+  - Gửi thông báo hệ thống Native OS qua khay thông báo macOS / Windows.
+  - Phát chuông thiền/tập trung dịu nhẹ (Chime) bằng Web Audio API.
+  - Hiển thị banner cảnh báo nổi bật trực tiếp trên giao diện ứng dụng.
+- **Nút kiểm tra trực tiếp**: Nút *"Thử Nghiệm Ngay"* giúp kiểm tra âm thanh và khay thông báo tức thì.
+
+### 4. Tối ưu Trải nghiệm & Tương tác
 - **Tự động format tiền tệ**: Nhập số tiền tự động phân cách hàng nghìn (ví dụ: `220.000 đ`).
 - **Giao diện Clean Light Theme**: Độ tương phản cao đạt chuẩn trợ năng WCAG 2.1 AA, bố cục đồng nhất chiều cao 100%.
 - **Sao chép nhanh 1-Click**:
   - Sao chép dữ liệu dạng bảng (TSV) để dán trực tiếp vào Google Sheets / Excel.
   - Tạo mẫu báo cáo tổng kết chuyên nghiệp gửi khách hàng qua Zalo / Telegram / Email kèm thông tin số tài khoản ngân hàng.
 
-### 4. An toàn & Bảo mật Dữ liệu (Local-First)
+### 5. An toàn & Bảo mật Dữ liệu (Local-First)
 - Toàn bộ dữ liệu được lưu trữ trực tiếp trong cơ sở dữ liệu SQLite cục bộ trên máy của bạn.
 - Hoạt động 100% Offline, không phụ thuộc vào Internet hay bất kỳ dịch vụ máy chủ bên thứ ba nào.
 

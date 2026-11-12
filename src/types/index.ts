@@ -164,3 +164,62 @@ export interface SaveFocusSettingsInput {
     days_of_week: string;
     sound_enabled: boolean;
 }
+
+export type TaskStatus =
+    | "To do"
+    | "In process"
+    | "Dev testing"
+    | "Deploy"
+    | "Done"
+    | "Close"
+    | "Reject";
+
+export interface WeeklyTask {
+    id: number;
+    month: string;             // YYYY-MM
+    week_of_month: number;     // 1, 2, 3, 4, 5
+    task_key: string;          // ONEAT-5289, DEV-9000
+    task_url: string;          // https://interspacevn.atlassian.net/browse/...
+    title: string;
+    category: string;          // ATOS, MGM, DEV, ONEAT...
+    status: TaskStatus;
+    priority: "HIGH" | "NORMAL" | "LOW";
+    deadline: string;          // YYYY-MM-DD HH:mm hoặc ""
+    note: string;
+    order_index: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateWeeklyTaskInput {
+    month: string;
+    week_of_month: number;
+    task_key: string;
+    task_url: string;
+    title: string;
+    category?: string;
+    status?: TaskStatus;
+    priority?: "HIGH" | "NORMAL" | "LOW";
+    deadline?: string;
+    note?: string;
+}
+
+export interface UpdateWeeklyTaskInput {
+    id: number;
+    month: string;
+    week_of_month: number;
+    task_key: string;
+    task_url: string;
+    title: string;
+    category: string;
+    status: TaskStatus;
+    priority: "HIGH" | "NORMAL" | "LOW";
+    deadline: string;
+    note: string;
+}
+
+export interface BatchCreateWeeklyTasksInput {
+    month: string;
+    week_of_month: number;
+    tasks: CreateWeeklyTaskInput[];
+}

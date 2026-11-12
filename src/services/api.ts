@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
     AppSettings,
+    BatchCreateWeeklyTasksInput,
     CreatePaymentInput,
     CreateProjectInput,
     CreateTimeEntryInput,
+    CreateWeeklyTaskInput,
     FocusSettings,
     MonthlySummary,
     Payment,
@@ -11,10 +13,13 @@ import {
     ProjectDebtItem,
     SaveFocusSettingsInput,
     SaveSettingsInput,
+    TaskStatus,
     TimeEntry,
     UpdatePaymentInput,
     UpdateProjectInput,
     UpdateTimeEntryInput,
+    UpdateWeeklyTaskInput,
+    WeeklyTask,
 } from "../types";
 
 /**
@@ -94,5 +99,38 @@ export const api = {
     },
     saveFocusSettings: async (input: SaveFocusSettingsInput): Promise<void> => {
         return invoke<void>("cmd_save_focus_settings", { input });
+    },
+
+    // Weekly Tasks
+    getWeeklyTasks: async (
+        month: string,
+        weekOfMonth?: number,
+        status?: string,
+        category?: string
+    ): Promise<WeeklyTask[]> => {
+        return invoke<WeeklyTask[]>("cmd_get_weekly_tasks", {
+            month,
+            weekOfMonth: weekOfMonth || null,
+            status: status || null,
+            category: category || null,
+        });
+    },
+    createWeeklyTask: async (input: CreateWeeklyTaskInput): Promise<WeeklyTask> => {
+        return invoke<WeeklyTask>("cmd_create_weekly_task", { input });
+    },
+    updateWeeklyTask: async (input: UpdateWeeklyTaskInput): Promise<void> => {
+        return invoke<void>("cmd_update_weekly_task", { input });
+    },
+    deleteWeeklyTask: async (id: number): Promise<void> => {
+        return invoke<void>("cmd_delete_weekly_task", { id });
+    },
+    updateTaskStatus: async (id: number, status: TaskStatus): Promise<void> => {
+        return invoke<void>("cmd_update_task_status", { id, status });
+    },
+    batchCreateWeeklyTasks: async (input: BatchCreateWeeklyTasksInput): Promise<WeeklyTask[]> => {
+        return invoke<WeeklyTask[]>("cmd_batch_create_weekly_tasks", { input });
+    },
+    exportExcelFile: async (fileName: string, bytes: number[]): Promise<string> => {
+        return invoke<string>("cmd_export_excel_file", { fileName, bytes });
     },
 };

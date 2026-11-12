@@ -3,6 +3,7 @@ pub mod focus;
 pub mod payments;
 pub mod projects;
 pub mod settings;
+pub mod tasks;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -112,6 +113,33 @@ impl Database {
             [],
         )?;
 
+        // 6. Bảng lưu danh sách Task công việc theo tuần (Weekly Tasks)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS weekly_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                month TEXT NOT NULL,
+                week_of_month INTEGER NOT NULL DEFAULT 1,
+                task_key TEXT NOT NULL,
+                task_url TEXT NOT NULL,
+                title TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'To do',
+                priority TEXT NOT NULL DEFAULT 'NORMAL',
+                deadline TEXT NOT NULL DEFAULT '',
+                note TEXT NOT NULL DEFAULT '',
+                order_index INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );",
+            [],
+        )?;
+
+        // Migration an toàn bổ sung cột deadline nếu bảng đã tồn tại từ trước
+        let _ = conn.execute(
+            "ALTER TABLE weekly_tasks ADD COLUMN deadline TEXT NOT NULL DEFAULT '';",
+            [],
+        );
+
         Ok(())
     }
 
@@ -208,6 +236,37 @@ impl Database {
                  VALUES (?1, 4700000.0, '2026-08-31', 'Khách thanh toán đợt 1 (còn dư nợ 2.230.000 đ)', ?2);",
                 params![project_id, now],
             )?;
+        }
+
+        // Nếu bảng weekly_tasks còn trống, khởi tạo danh sách task mẫu của Anh Phú
+        let task_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM weekly_tasks",
+            [],
+            |row| row.get(0),
+        )?;
+
+        if task_count == 0 {
+            let initial_tasks = vec![
+                ("[DEV] [ATOS][M1.5] Dashboard quản trị vận hành (view KHCL/BOD) – Xây dựng Dashboard Tổng quan công ty", "ONEAT-5289", "https://interspacevn.atlassian.net/browse/ONEAT-5289", "ATOS", "In process", "2026-11-12 18:00"),
+                ("[DEV] [ATOS][M1.5] Dashboard quản trị vận hành (view KHCL/BOD) – AGE Performance", "ONEAT-5291", "https://interspacevn.atlassian.net/browse/ONEAT-5291", "ATOS", "To do", "2026-11-13 18:00"),
+                ("[DEV] [ATOS][M1.5] Dashboard quản trị vận hành (view KHCL/BOD) – Campaign performance", "ONEAT-5290", "https://interspacevn.atlassian.net/browse/ONEAT-5290", "ATOS", "To do", "2026-11-10 18:00"),
+                ("[DEV] [ATOS][M1.5] Vận hành hệ thống (Left menu) – Thêm chức năng chuyển campaign sang BU member khác", "ONEAT-5226", "https://interspacevn.atlassian.net/browse/ONEAT-5226", "ATOS", "Dev testing", "2026-11-12 21:00"),
+                ("[DEV] [ATOS][M1.5] Screen Plan launching & vận hành – Time cutoff khóa chỉnh sửa số liệu của AGE, Admin được phép chỉnh sửa", "ONEAT-5295", "https://interspacevn.atlassian.net/browse/ONEAT-5295", "ATOS", "To do", "2026-11-14 18:00"),
+                ("[DEV] [ATOS][M1.5] Screen Plan launching & vận hành – Export/Import file cho phép AGE cập nhật 5 số liệu campaign", "ONEAT-5294", "https://interspacevn.atlassian.net/browse/ONEAT-5294", "ATOS", "Deploy", "2026-11-13 12:00"),
+                ("[ATOS][M1.5] Pipeline – Bổ sung logic cho edge case AGE fill dữ liệu trên AT OS tự động tạo mới bản ghi trên file AT Operation", "ONEAT-5297", "https://interspacevn.atlassian.net/browse/ONEAT-5297", "ATOS", "Done", "2026-11-11 18:00"),
+                ("[ATOS][M1.5] Pipeline – Bổ sung các field còn thiếu trên AT OS để AGE fill dữ liệu và tự động fill vào file AT Operation", "ONEAT-5296", "https://interspacevn.atlassian.net/browse/ONEAT-5296", "ATOS", "Close", "2026-11-10 12:00"),
+                ("[MGM] - Postback trạng thái hợp đồng về cho các đối tác", "DEV-9000", "https://interspacevn.atlassian.net/browse/DEV-9000", "MGM", "In process", "2026-11-12 17:30"),
+            ];
+
+            for (idx, (title, key, url, cat, st, dline)) in initial_tasks.iter().enumerate() {
+                conn.execute(
+                    "INSERT INTO weekly_tasks (
+                        month, week_of_month, task_key, task_url, title, category,
+                        status, priority, deadline, note, order_index, created_at, updated_at
+                    ) VALUES ('2026-11', 2, ?1, ?2, ?3, ?4, ?5, 'NORMAL', ?6, '', ?7, ?8, ?9);",
+                    params![key, url, title, cat, st, dline, (idx + 1) as i64, now, now],
+                )?;
+            }
         }
 
         Ok(())

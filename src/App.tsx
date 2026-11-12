@@ -1,40 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { Header } from "./components/Header";
-import { MetricsCards } from "./components/MetricsCards";
-import { TimeTable } from "./components/TimeTable";
-import { TimeEntryModal } from "./components/TimeEntryModal";
-import { PaymentModal } from "./components/PaymentModal";
-import { ProjectModal } from "./components/ProjectModal";
-import { DebtModal } from "./components/DebtModal";
-import { SettingsModal } from "./components/SettingsModal";
-import { ConfirmModal } from "./components/ConfirmModal";
-import { TimeTableSkeleton } from "./components/TimeTableSkeleton";
-import { FocusReminderModal } from "./components/FocusReminderModal";
-import { FocusAlertBanner } from "./components/FocusAlertBanner";
+import { FreelanceView } from "./components/FreelanceView";
+import { WeeklyTaskView } from "./components/WeeklyTaskView";
+import { AppModals, ConfirmState } from "./components/AppModals";
 import { checkFocusSchedule, FocusSoundTheme, playFocusChimeSound, sendNativeFocusNotification } from "./services/focusScheduler";
 import { api } from "./services/api";
 import {
     AppSettings,
+    BatchCreateWeeklyTasksInput,
     CreatePaymentInput,
     CreateProjectInput,
     CreateTimeEntryInput,
+    CreateWeeklyTaskInput,
     FocusSettings,
     MonthlySummary,
     Payment,
     Project,
     SaveFocusSettingsInput,
     SaveSettingsInput,
+    TaskStatus,
     TimeEntry,
     UpdateProjectInput,
     UpdateTimeEntryInput,
+    UpdateWeeklyTaskInput,
+    WeeklyTask,
 } from "./types";
-
-interface ConfirmState {
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => Promise<void>;
-}
 
 /**
  * Lấy tháng hiện tại theo thời gian thực tế của hệ điều hành (Định dạng "YYYY-MM")
@@ -50,10 +40,13 @@ const getCurrentRealMonth = (): string => {
  * Ứng dụng chính TimeTrack - Giao diện Sáng Sang Trọng (Clean Light Theme)
  */
 export default function App() {
+    // Phân hệ đang hoạt động (Chấm công freelance hoặc Task công ty theo tuần)
+    const [activeTab, setActiveTab] = useState<"freelance" | "tasks">("freelance");
+
     // Tháng hiện tại được chọn (Tự động lấy tháng thực tế hiện tại của hệ thống)
     const [currentMonth, setCurrentMonth] = useState<string>(getCurrentRealMonth);
 
-    // Trạng thái dữ liệu
+    // Trạng thái dữ liệu Freelance
     const [projects, setProjects] = useState<Project[]>([]);
     const [entries, setEntries] = useState<TimeEntry[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
@@ -62,7 +55,14 @@ export default function App() {
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
 
-    // Trạng thái các Modals
+    // Trạng thái dữ liệu Task Công Ty Theo Tuần
+    const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>([]);
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState<boolean>(false);
+    const [editingTask, setEditingTask] = useState<WeeklyTask | null>(null);
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState<boolean>(false);
+    const [selectedWeekForTask, setSelectedWeekForTask] = useState<number>(2);
+
+    // Trạng thái các Modals Freelance
     const [isEntryModalOpen, setIsEntryModalOpen] = useState<boolean>(false);
     const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
@@ -84,17 +84,18 @@ export default function App() {
         onConfirm: async () => {},
     });
 
-    // Tải toàn bộ dữ liệu cần thiết theo tháng
-    const loadData = async () => {
+    // Tải toàn bộ dữ liệu cần thiết theo tháng (Hỗ trợ tải ngầm không chớp màn hình)
+    const loadData = async (showSkeleton = true) => {
         try {
-            setLoading(true);
-            const [projData, entryData, payData, sumData, settData, focusData] = await Promise.all([
+            if (showSkeleton) setLoading(true);
+            const [projData, entryData, payData, sumData, settData, focusData, tasksData] = await Promise.all([
                 api.getProjects(true),
                 api.getTimeEntries(currentMonth, selectedProjectId || undefined),
                 api.getPayments(currentMonth, selectedProjectId || undefined),
                 api.getMonthlySummary(currentMonth, selectedProjectId || undefined),
                 api.getSettings(),
                 api.getFocusSettings(),
+                api.getWeeklyTasks(currentMonth),
             ]);
 
             setProjects(projData);
@@ -103,10 +104,11 @@ export default function App() {
             setSummary(sumData);
             setSettings(settData);
             setFocusSettings(focusData);
+            setWeeklyTasks(tasksData);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu TimeTrack:", error);
         } finally {
-            setLoading(false);
+            if (showSkeleton) setLoading(false);
         }
     };
 
@@ -185,7 +187,7 @@ export default function App() {
                 total_amount: entry.total_amount,
                 note: entry.note,
             });
-            await loadData();
+            await loadData(false);
         } catch (error) {
             console.error("Lỗi nhân bản phiên làm việc:", error);
         }
@@ -193,12 +195,12 @@ export default function App() {
 
     const handleSaveCreateEntry = async (input: CreateTimeEntryInput) => {
         await api.createTimeEntry(input);
-        await loadData();
+        await loadData(false);
     };
 
     const handleSaveUpdateEntry = async (input: UpdateTimeEntryInput) => {
         await api.updateTimeEntry(input);
-        await loadData();
+        await loadData(false);
     };
 
     const handleDeleteEntry = (id: number) => {
@@ -209,7 +211,7 @@ export default function App() {
             onConfirm: async () => {
                 await api.deleteTimeEntry(id);
                 setConfirmState((prev) => ({ ...prev, isOpen: false }));
-                await loadData();
+                await loadData(false);
             },
         });
     };
@@ -220,7 +222,7 @@ export default function App() {
 
     const handleSavePayment = async (input: CreatePaymentInput) => {
         await api.createPayment(input);
-        await loadData();
+        await loadData(false);
     };
 
     const handleDeletePayment = (id: number) => {
@@ -231,7 +233,7 @@ export default function App() {
             onConfirm: async () => {
                 await api.deletePayment(id);
                 setConfirmState((prev) => ({ ...prev, isOpen: false }));
-                await loadData();
+                await loadData(false);
             },
         });
     };
@@ -242,12 +244,12 @@ export default function App() {
 
     const handleSaveCreateProject = async (input: CreateProjectInput) => {
         await api.createProject(input);
-        await loadData();
+        await loadData(false);
     };
 
     const handleSaveUpdateProject = async (input: UpdateProjectInput) => {
         await api.updateProject(input);
-        await loadData();
+        await loadData(false);
     };
 
     const handleDeleteProject = (id: number) => {
@@ -264,7 +266,7 @@ export default function App() {
                     setSelectedProjectId(null);
                 }
                 setConfirmState((prev) => ({ ...prev, isOpen: false }));
-                await loadData();
+                await loadData(false);
             },
         });
     };
@@ -275,13 +277,74 @@ export default function App() {
 
     const handleSaveSettings = async (input: SaveSettingsInput) => {
         await api.saveSettings(input);
-        await loadData();
+        await loadData(false);
+    };
+
+    // ==========================================
+    // CÁC THAO TÁC TASK CÔNG TY THEO TUẦN
+    // ==========================================
+
+    const handleOpenCreateTask = (week: number) => {
+        setSelectedWeekForTask(week);
+        setEditingTask(null);
+        setIsTaskModalOpen(true);
+    };
+
+    const handleOpenBatchImport = (week: number) => {
+        setSelectedWeekForTask(week);
+        setIsBatchModalOpen(true);
+    };
+
+    const handleEditTask = (task: WeeklyTask) => {
+        setEditingTask(task);
+        setSelectedWeekForTask(task.week_of_month);
+        setIsTaskModalOpen(true);
+    };
+
+    const handleDeleteTask = (id: number, taskKey: string) => {
+        setConfirmState({
+            isOpen: true,
+            title: `Xác nhận xóa task ${taskKey}`,
+            message: `Bạn có chắc chắn muốn xóa task "${taskKey}" không? Thao tác này không thể hoàn tác.`,
+            onConfirm: async () => {
+                await api.deleteWeeklyTask(id);
+                const updated = await api.getWeeklyTasks(currentMonth);
+                setWeeklyTasks(updated);
+                setConfirmState((prev) => ({ ...prev, isOpen: false }));
+            },
+        });
+    };
+
+    const handleUpdateTaskStatus = async (id: number, status: TaskStatus) => {
+        await api.updateTaskStatus(id, status);
+        const updated = await api.getWeeklyTasks(currentMonth);
+        setWeeklyTasks(updated);
+    };
+
+    const handleSaveCreateTask = async (input: CreateWeeklyTaskInput) => {
+        await api.createWeeklyTask(input);
+        const updated = await api.getWeeklyTasks(currentMonth);
+        setWeeklyTasks(updated);
+    };
+
+    const handleSaveUpdateTask = async (input: UpdateWeeklyTaskInput) => {
+        await api.updateWeeklyTask(input);
+        const updated = await api.getWeeklyTasks(currentMonth);
+        setWeeklyTasks(updated);
+    };
+
+    const handleSaveBatchTasks = async (input: BatchCreateWeeklyTasksInput) => {
+        await api.batchCreateWeeklyTasks(input);
+        const updated = await api.getWeeklyTasks(currentMonth);
+        setWeeklyTasks(updated);
     };
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
             {/* Header điều hướng & chọn tháng */}
             <Header
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
                 currentMonth={currentMonth}
                 onChangeMonth={setCurrentMonth}
                 onOpenCreateEntry={handleOpenCreateEntry}
@@ -295,106 +358,87 @@ export default function App() {
 
             {/* Nội dung chính */}
             <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-                {loading && !summary ? (
-                    <TimeTableSkeleton />
+                {activeTab === "freelance" ? (
+                    <FreelanceView
+                        loading={loading}
+                        summary={summary}
+                        entries={entries}
+                        projects={projects}
+                        settings={settings}
+                        currentMonth={currentMonth}
+                        selectedProjectId={selectedProjectId}
+                        onSelectProject={setSelectedProjectId}
+                        onEditEntry={handleOpenEditEntry}
+                        onDeleteEntry={handleDeleteEntry}
+                        onDuplicateEntry={handleDuplicateEntry}
+                    />
                 ) : (
-                    <>
-                        {/* 4 Thẻ chỉ số & Cảnh báo nợ cũ chuyển sang */}
-                        <MetricsCards
-                            summary={summary}
-                            currencySymbol={settings?.currency_symbol || "đ"}
-                        />
-
-                        {/* Bảng dữ liệu chấm công chi tiết */}
-                        <TimeTable
-                            entries={entries}
-                            projects={projects}
-                            summary={summary}
-                            settings={settings}
-                            currentMonth={currentMonth}
-                            onEditEntry={handleOpenEditEntry}
-                            onDeleteEntry={handleDeleteEntry}
-                            onDuplicateEntry={handleDuplicateEntry}
-                            selectedProjectId={selectedProjectId}
-                            onSelectProject={setSelectedProjectId}
-                        />
-                    </>
+                    <WeeklyTaskView
+                        currentMonth={currentMonth}
+                        onChangeMonth={setCurrentMonth}
+                        tasks={weeklyTasks}
+                        onRefresh={async () => {
+                            const updated = await api.getWeeklyTasks(currentMonth);
+                            setWeeklyTasks(updated);
+                        }}
+                        onOpenCreateTask={handleOpenCreateTask}
+                        onOpenBatchImport={handleOpenBatchImport}
+                        onEditTask={handleEditTask}
+                        onDeleteTask={handleDeleteTask}
+                        onUpdateStatus={handleUpdateTaskStatus}
+                    />
                 )}
             </main>
 
             {/* Footer */}
             <footer className="border-t border-slate-200 bg-white py-3.5 text-center text-xs text-slate-500 whitespace-nowrap shadow-2xs">
-                TimeTrack &copy; {new Date().getFullYear()} - Quản lý giờ làm việc & Dư nợ Freelance
+                TimeTrack &copy; {new Date().getFullYear()} - Quản lý giờ làm việc & Task công ty theo tuần
             </footer>
 
-            {/* Modals */}
-            <TimeEntryModal
-                isOpen={isEntryModalOpen}
-                onClose={() => setIsEntryModalOpen(false)}
-                onSaveCreate={handleSaveCreateEntry}
-                onSaveUpdate={handleSaveUpdateEntry}
+            {/* Quản lý tập trung toàn bộ Modal của ứng dụng */}
+            <AppModals
+                isEntryModalOpen={isEntryModalOpen}
+                onCloseEntryModal={() => setIsEntryModalOpen(false)}
                 editingEntry={editingEntry}
-                projects={projects.filter((p) => !p.is_archived)}
-                currencySymbol={settings?.currency_symbol || "đ"}
-            />
-
-            <PaymentModal
-                isOpen={isPaymentModalOpen}
-                onClose={() => setIsPaymentModalOpen(false)}
-                payments={payments}
-                projects={projects.filter((p) => !p.is_archived)}
-                currencySymbol={settings?.currency_symbol || "đ"}
-                onSavePayment={handleSavePayment}
-                onDeletePayment={handleDeletePayment}
-            />
-
-            <ProjectModal
-                isOpen={isProjectModalOpen}
-                onClose={() => setIsProjectModalOpen(false)}
                 projects={projects}
                 currencySymbol={settings?.currency_symbol || "đ"}
-                onSaveCreate={handleSaveCreateProject}
-                onSaveUpdate={handleSaveUpdateProject}
+                onSaveCreateEntry={handleSaveCreateEntry}
+                onSaveUpdateEntry={handleSaveUpdateEntry}
+                isPaymentModalOpen={isPaymentModalOpen}
+                onClosePaymentModal={() => setIsPaymentModalOpen(false)}
+                payments={payments}
+                onSavePayment={handleSavePayment}
+                onDeletePayment={handleDeletePayment}
+                isProjectModalOpen={isProjectModalOpen}
+                onCloseProjectModal={() => setIsProjectModalOpen(false)}
+                onSaveCreateProject={handleSaveCreateProject}
+                onSaveUpdateProject={handleSaveUpdateProject}
                 onDeleteProject={handleDeleteProject}
-            />
-
-            <DebtModal
-                isOpen={isDebtModalOpen}
-                onClose={() => setIsDebtModalOpen(false)}
-                currencySymbol={settings?.currency_symbol || "đ"}
-            />
-
-            <SettingsModal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
+                isDebtModalOpen={isDebtModalOpen}
+                onCloseDebtModal={() => setIsDebtModalOpen(false)}
+                isSettingsModalOpen={isSettingsModalOpen}
+                onCloseSettingsModal={() => setIsSettingsModalOpen(false)}
                 settings={settings}
                 onSaveSettings={handleSaveSettings}
-            />
-
-            {/* Modal Cài Đặt Nhắc Nhở Tập Trung (Im lặng làm việc) */}
-            <FocusReminderModal
-                isOpen={isFocusModalOpen}
-                onClose={() => setIsFocusModalOpen(false)}
-                settings={focusSettings}
-                onSave={handleSaveFocusSettings}
-                onTestNotification={handleTestFocusNotification}
-            />
-
-            {/* Banner Cảnh Báo "Im Lặng Làm Việc" Nổi Bật Trên Màn Hình */}
-            {activeFocusAlert && (
-                <FocusAlertBanner
-                    message={activeFocusAlert}
-                    onDismiss={() => setActiveFocusAlert(null)}
-                />
-            )}
-
-            {/* Confirm Modal an toàn thay thế window.confirm */}
-            <ConfirmModal
-                isOpen={confirmState.isOpen}
-                title={confirmState.title}
-                message={confirmState.message}
-                onConfirm={confirmState.onConfirm}
-                onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+                isTaskModalOpen={isTaskModalOpen}
+                onCloseTaskModal={() => setIsTaskModalOpen(false)}
+                editingTask={editingTask}
+                currentMonth={currentMonth}
+                selectedWeekForTask={selectedWeekForTask}
+                onSaveCreateTask={handleSaveCreateTask}
+                onSaveUpdateTask={handleSaveUpdateTask}
+                isBatchModalOpen={isBatchModalOpen}
+                onCloseBatchModal={() => setIsBatchModalOpen(false)}
+                onSaveBatchTasks={handleSaveBatchTasks}
+                isFocusModalOpen={isFocusModalOpen}
+                onCloseFocusModal={() => setIsFocusModalOpen(false)}
+                focusSettings={focusSettings}
+                onSaveFocusSettings={handleSaveFocusSettings}
+                onTestFocusNotification={handleTestFocusNotification}
+                activeFocusAlert={activeFocusAlert}
+                onDismissFocusAlert={() => setActiveFocusAlert(null)}
+                confirmState={confirmState}
+                onCancelConfirm={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
             />
         </div>
     );

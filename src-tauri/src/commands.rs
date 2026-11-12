@@ -2,10 +2,11 @@ use tauri::State;
 
 use crate::db::Database;
 use crate::models::{
-    AppSettings, CreatePaymentInput, CreateProjectInput, CreateTimeEntryInput,
-    FocusSettings, MonthlySummary, Payment, Project, ProjectDebtItem,
-    SaveFocusSettingsInput, SaveSettingsInput, TimeEntry, UpdatePaymentInput,
-    UpdateProjectInput, UpdateTimeEntryInput,
+    AppSettings, BatchCreateWeeklyTasksInput, CreatePaymentInput, CreateProjectInput,
+    CreateTimeEntryInput, CreateWeeklyTaskInput, FocusSettings, MonthlySummary,
+    Payment, Project, ProjectDebtItem, SaveFocusSettingsInput, SaveSettingsInput,
+    TimeEntry, UpdatePaymentInput, UpdateProjectInput, UpdateTimeEntryInput,
+    UpdateWeeklyTaskInput, WeeklyTask,
 };
 
 // ==========================================
@@ -192,4 +193,100 @@ pub fn cmd_save_focus_settings(
 ) -> Result<(), String> {
     db.save_focus_settings(input)
         .map_err(|e| format!("Lỗi lưu cài đặt nhắc nhở tập trung: {}", e))
+}
+
+// ==========================================
+// IPC COMMANDS TASK CÔNG TY THEO TUẦN (WEEKLY TASKS)
+// ==========================================
+
+#[tauri::command]
+pub fn cmd_get_weekly_tasks(
+    db: State<'_, Database>,
+    month: String,
+    week_of_month: Option<i64>,
+    status: Option<String>,
+    category: Option<String>,
+) -> Result<Vec<WeeklyTask>, String> {
+    db.get_weekly_tasks(&month, week_of_month, status.as_deref(), category.as_deref())
+        .map_err(|e| format!("Lỗi tải danh sách task tuần: {}", e))
+}
+
+#[tauri::command]
+pub fn cmd_create_weekly_task(
+    db: State<'_, Database>,
+    input: CreateWeeklyTaskInput,
+) -> Result<WeeklyTask, String> {
+    db.create_weekly_task(input)
+        .map_err(|e| format!("Lỗi tạo task tuần: {}", e))
+}
+
+#[tauri::command]
+pub fn cmd_update_weekly_task(
+    db: State<'_, Database>,
+    input: UpdateWeeklyTaskInput,
+) -> Result<(), String> {
+    db.update_weekly_task(input)
+        .map_err(|e| format!("Lỗi cập nhật task tuần: {}", e))
+}
+
+#[tauri::command]
+pub fn cmd_delete_weekly_task(
+    db: State<'_, Database>,
+    id: i64,
+) -> Result<(), String> {
+    db.delete_weekly_task(id)
+        .map_err(|e| format!("Lỗi xóa task tuần: {}", e))
+}
+
+#[tauri::command]
+pub fn cmd_update_task_status(
+    db: State<'_, Database>,
+    id: i64,
+    status: String,
+) -> Result<(), String> {
+    db.update_task_status(id, &status)
+        .map_err(|e| format!("Lỗi cập nhật trạng thái task: {}", e))
+}
+
+#[tauri::command]
+pub fn cmd_batch_create_weekly_tasks(
+    db: State<'_, Database>,
+    input: BatchCreateWeeklyTasksInput,
+) -> Result<Vec<WeeklyTask>, String> {
+    db.batch_create_weekly_tasks(input)
+        .map_err(|e| format!("Lỗi import hàng loạt task: {}", e))
+}
+
+// ==========================================
+// IPC COMMAND XUẤT FILE EXCEL (.XLSX)
+// ==========================================
+
+#[tauri::command]
+pub fn cmd_export_excel_file(
+    file_name: String,
+    bytes: Vec<u8>,
+) -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|e| format!("Không tìm thấy thư mục người dùng: {}", e))?;
+    let downloads_dir = std::path::PathBuf::from(home).join("Downloads");
+
+    if !downloads_dir.exists() {
+        std::fs::create_dir_all(&downloads_dir)
+            .map_err(|e| format!("Không thể tạo thư mục Downloads: {}", e))?;
+    }
+
+    let file_path = downloads_dir.join(&file_name);
+
+    std::fs::write(&file_path, &bytes)
+        .map_err(|e| format!("Lỗi ghi file Excel (.xlsx): {}", e))?;
+
+    // Trên macOS: Tự động mở Finder và highlight vị trí file vừa lưu
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open")
+            .arg("-R")
+            .arg(&file_path)
+            .spawn();
+    }
+
+    Ok(file_path.to_string_lossy().to_string())
 }

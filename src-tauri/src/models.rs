@@ -199,3 +199,62 @@ pub struct SaveFocusSettingsInput {
     pub days_of_week: String,
     pub sound_enabled: bool,
 }
+
+/// Thông tin Task công việc theo tuần (Weekly Company Task)
+/// Mục đích: Quản lý các task Jira của công ty theo từng Tuần 1, 2, 3, 4, 5 của Tháng
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WeeklyTask {
+    pub id: i64,
+    pub month: String,             // Định dạng YYYY-MM (Ví dụ: "2026-11")
+    pub week_of_month: i64,        // Tuần 1, 2, 3, 4, 5
+    pub task_key: String,          // Mã task (Ví dụ: "DEV-9000", "ONEAT-5289")
+    pub task_url: String,          // Link Jira đầy đủ
+    pub title: String,             // Tiêu đề công việc
+    pub category: String,          // Tag dự án (Ví dụ: "ATOS", "MGM", "DEV", "ONEAT")
+    pub status: String,            // "To do", "In process", "Dev testing", "Deploy", "Done", "Close", "Reject"
+    pub priority: String,          // "HIGH", "NORMAL", "LOW"
+    pub deadline: String,          // Hạn chót hoàn thành (Ví dụ: "2026-11-15 18:00")
+    pub note: String,              // Ghi chú cá nhân
+    pub order_index: i64,          // Thứ tự sắp xếp
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// DTO Input khi tạo mới một Task công việc
+#[derive(Debug, Deserialize)]
+pub struct CreateWeeklyTaskInput {
+    pub month: String,
+    pub week_of_month: i64,
+    pub task_key: String,
+    pub task_url: String,
+    pub title: String,
+    pub category: Option<String>,
+    pub status: Option<String>,
+    pub priority: Option<String>,
+    pub deadline: Option<String>,
+    pub note: Option<String>,
+}
+
+/// DTO Input khi cập nhật một Task công việc
+#[derive(Debug, Deserialize)]
+pub struct UpdateWeeklyTaskInput {
+    pub id: i64,
+    pub month: String,
+    pub week_of_month: i64,
+    pub task_key: String,
+    pub task_url: String,
+    pub title: String,
+    pub category: String,
+    pub status: String,
+    pub priority: String,
+    pub deadline: String,
+    pub note: String,
+}
+
+/// DTO Input khi import hàng loạt Task vào 1 tuần
+#[derive(Debug, Deserialize)]
+pub struct BatchCreateWeeklyTasksInput {
+    pub month: String,
+    pub week_of_month: i64,
+    pub tasks: Vec<CreateWeeklyTaskInput>,
+}

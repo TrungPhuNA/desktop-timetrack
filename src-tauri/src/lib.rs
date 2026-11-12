@@ -50,6 +50,13 @@ pub fn run() {
             cmd_save_settings,
             cmd_get_focus_settings,
             cmd_save_focus_settings,
+            cmd_get_weekly_tasks,
+            cmd_create_weekly_task,
+            cmd_update_weekly_task,
+            cmd_delete_weekly_task,
+            cmd_update_task_status,
+            cmd_batch_create_weekly_tasks,
+            cmd_export_excel_file,
         ])
         .run(tauri::generate_context!())
         .expect("Lỗi khi khởi chạy ứng dụng TimeTrack");

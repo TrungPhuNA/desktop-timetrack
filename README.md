@@ -23,18 +23,27 @@
 - **Áp dụng các ngày làm việc**: Mặc định từ **Thứ 2 đến Thứ 6**, tự động nghỉ ngơi Thứ 7 & Chủ Nhật (có thể tùy chọn).
 - **Đa phương thức thông báo**:
   - Gửi thông báo hệ thống Native OS qua khay thông báo macOS / Windows.
-  - Phát chuông thiền/tập trung dịu nhẹ (Chime) bằng Web Audio API.
-  - Hiển thị banner cảnh báo nổi bật trực tiếp trên giao diện ứng dụng.
+  - Phát chuông thiền/tập trung dịu nhẹ (Chime) bằng Web Audio API với 3 giai điệu (Pha Lê, Marimba, Zen 432Hz).
+  - Cửa sổ cảnh báo rung lắc 2 bên liên tục trực tiếp trên màn hình.
 - **Nút kiểm tra trực tiếp**: Nút *"Thử Nghiệm Ngay"* giúp kiểm tra âm thanh và khay thông báo tức thì.
 
-### 4. Tối ưu Trải nghiệm & Tương tác
+### 4. Quản Lý Task Công Ty Theo Tuần (Jira Weekly Tasks)
+- **Hệ thống Tab kép**: Chuyển đổi linh hoạt giữa *⏱️ Chấm Công Freelance* và *📋 Task Công Ty Theo Tuần*.
+- **Chu kỳ theo Tuần của Tháng**: Quản lý gọn gàng theo **Tuần 1, Tuần 2, Tuần 3, Tuần 4, Tuần 5** của từng tháng.
+- **7 Trạng thái chuẩn Jira**: `To do`, `In process`, `Dev testing`, `Deploy`, `Done`, `Close`, `Reject` với badge màu sắc trực quan và đổi trạng thái nhanh 1-click.
+- **Xử lý thông minh Mã Task & Link Jira**: Tự động bóc tách mã task từ URL `https://interspacevn.atlassian.net/browse/***` và ngược lại. 1-Click mở task trực tiếp trên Jira.
+- **Nhập nhanh hàng loạt (Quick Batch Import)**: Dán trực tiếp danh sách ghi chú Jira thô, hệ thống tự động bóc tách thành các task có cấu trúc trong 1 giây.
+- **Xuất Excel (CSV)**: Xuất toàn bộ danh sách task theo bộ lọc ra file Excel với mã hóa UTF-8 BOM, không lỗi font tiếng Việt.
+- **Sao chép báo cáo tuần**: Nút 1-click định dạng sẵn toàn bộ tiến độ công việc tuần để gửi lên Zalo / Telegram / Slack.
+
+### 5. Tối ưu Trải nghiệm & Tương tác
 - **Tự động format tiền tệ**: Nhập số tiền tự động phân cách hàng nghìn (ví dụ: `220.000 đ`).
 - **Giao diện Clean Light Theme**: Độ tương phản cao đạt chuẩn trợ năng WCAG 2.1 AA, bố cục đồng nhất chiều cao 100%.
 - **Sao chép nhanh 1-Click**:
   - Sao chép dữ liệu dạng bảng (TSV) để dán trực tiếp vào Google Sheets / Excel.
   - Tạo mẫu báo cáo tổng kết chuyên nghiệp gửi khách hàng qua Zalo / Telegram / Email kèm thông tin số tài khoản ngân hàng.
 
-### 5. An toàn & Bảo mật Dữ liệu (Local-First)
+### 6. An toàn & Bảo mật Dữ liệu (Local-First)
 - Toàn bộ dữ liệu được lưu trữ trực tiếp trong cơ sở dữ liệu SQLite cục bộ trên máy của bạn.
 - Hoạt động 100% Offline, không phụ thuộc vào Internet hay bất kỳ dịch vụ máy chủ bên thứ ba nào.
 

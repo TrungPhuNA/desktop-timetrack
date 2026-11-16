@@ -88,3 +88,94 @@ export const cleanSelectStyles: StylesConfig<SelectOption, false> = {
         padding: 0,
     }),
 };
+
+/**
+ * Styling React-Select nhỏ gọn tối ưu cho các ô trong bảng dữ liệu (Table Cell)
+ * Hỗ trợ Portal gắn menu thẳng vào document.body để chống lỗi bị box ngoài cắt đứt
+ */
+export const tableSelectStyles: StylesConfig<SelectOption, false> = {
+    control: (base, state) => ({
+        ...base,
+        backgroundColor: "#ffffff",
+        borderColor: state.isFocused ? "#4f46e5" : "#cbd5e1",
+        borderRadius: "0.5rem",
+        padding: "0 2px",
+        height: "30px",
+        minHeight: "30px",
+        boxShadow: state.isFocused ? "0 0 0 1px #4f46e5" : "none",
+        "&:hover": {
+            borderColor: state.isFocused ? "#4f46e5" : "#94a3b8",
+        },
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+    }),
+    valueContainer: (base) => ({
+        ...base,
+        height: "30px",
+        padding: "0 6px",
+    }),
+    indicatorsContainer: (base) => ({
+        ...base,
+        height: "30px",
+    }),
+    dropdownIndicator: (base) => ({
+        ...base,
+        padding: "2px 4px",
+    }),
+    menu: (base) => ({
+        ...base,
+        backgroundColor: "#ffffff",
+        borderColor: "#e2e8f0",
+        borderWidth: "1px",
+        borderRadius: "0.5rem",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+        zIndex: 99999,
+        minWidth: "150px",
+    }),
+    menuPortal: (base) => ({
+        ...base,
+        zIndex: 99999,
+    }),
+    menuList: (base) => ({
+        ...base,
+        padding: "4px",
+        backgroundColor: "#ffffff",
+    }),
+    option: (base, state) => ({
+        ...base,
+        backgroundColor: state.isSelected
+            ? "#4f46e5"
+            : state.isFocused
+            ? "#f1f5f9"
+            : "transparent",
+        color: state.isSelected ? "#ffffff" : "#0f172a",
+        borderRadius: "0.375rem",
+        margin: "1px 0",
+        padding: "6px 10px",
+        cursor: "pointer",
+        fontSize: "0.75rem",
+        fontWeight: state.isSelected ? 700 : 500,
+        "&:active": {
+            backgroundColor: "#4338ca",
+        },
+    }),
+    singleValue: (base) => ({
+        ...base,
+        color: "#0f172a",
+        fontSize: "0.75rem",
+        fontWeight: 700,
+    }),
+    placeholder: (base) => ({
+        ...base,
+        color: "#94a3b8",
+        fontSize: "0.75rem",
+    }),
+    input: (base) => ({
+        ...base,
+        color: "#0f172a",
+        margin: 0,
+        padding: 0,
+        fontSize: "0.75rem",
+    }),
+};

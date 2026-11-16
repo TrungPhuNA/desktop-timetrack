@@ -41,6 +41,24 @@ export const normalizeJiraUrl = (keyOrUrl: string): { key: string; url: string }
 };
 
 /**
+ * Kiểm tra xem một task có thuộc phạm vi hiển thị của một tuần hay không
+ * 1. Task thuộc chính tuần đó (week_of_month === week)
+ * 2. Task của các tuần trước đó (week_of_month < week) nhưng CHƯA HOÀN THÀNH (khác Done & Close)
+ */
+export const isTaskInWeekView = (task: WeeklyTask, week: number): boolean => {
+    const taskWeek = Number(task.week_of_month);
+    const targetWeek = Number(week);
+    if (taskWeek === targetWeek) return true;
+    if (taskWeek < targetWeek) {
+        const normalizedStatus = (task.status || "").trim().toLowerCase();
+        // Chỉ ẩn đi khi task ĐÃ HOÀN TẤT (done hoặc close)
+        const isCompleted = normalizedStatus === "done" || normalizedStatus === "close";
+        return !isCompleted;
+    }
+    return false;
+};
+
+/**
  * Tự động bóc tách Tag/Phân loại từ tiêu đề công việc
  * Ví dụ: "[DEV] [ATOS][M1.5] Dashboard..." -> "ATOS"
  * Ví dụ: "[MGM] - Postback..." -> "MGM"
@@ -282,19 +300,25 @@ export const exportTasksToExcel = async (
         "Ghi Chú",
     ];
 
-    const rows = tasks.map((t, idx) => [
-        idx + 1,
-        t.month,
-        `Tuần ${t.week_of_month}`,
-        t.task_key,
-        t.category,
-        t.title,
-        t.deadline || "--",
-        t.status,
-        t.priority,
-        t.task_url,
-        t.note,
-    ]);
+    const rows = tasks.map((t, idx) => {
+        const weekText =
+            t.week_of_month === weekOfMonth
+                ? `Tuần ${t.week_of_month}`
+                : `Tuần ${t.week_of_month} (Tồn sang Tuần ${weekOfMonth})`;
+        return [
+            idx + 1,
+            t.month,
+            weekText,
+            t.task_key,
+            t.category,
+            t.title,
+            t.deadline || "--",
+            t.status,
+            t.priority,
+            t.task_url,
+            t.note,
+        ];
+    });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -380,7 +404,11 @@ export const formatWeeklySummaryReport = (
         if (group && group.length > 0) {
             report += `【${st.toUpperCase()}】 (${group.length})\n`;
             group.forEach((t, idx) => {
-                report += `${idx + 1}. [${t.task_key}] ${t.title}\n   🔗 ${t.task_url}\n`;
+                const carryTag =
+                    t.week_of_month < weekOfMonth
+                        ? ` [Tồn từ Tuần ${t.week_of_month}]`
+                        : "";
+                report += `${idx + 1}. [${t.task_key}]${carryTag} ${t.title}\n   🔗 ${t.task_url}\n`;
             });
             report += `\n`;
         }

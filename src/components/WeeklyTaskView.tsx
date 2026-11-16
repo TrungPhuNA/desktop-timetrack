@@ -8,18 +8,18 @@ import {
     ChevronRight,
     Copy,
     Download,
-    Edit2,
-    ExternalLink,
     Plus,
     Search,
     Sparkles,
-    Trash2,
 } from "lucide-react";
 import { TaskStatus, WeeklyTask } from "../types";
-import { TaskStatusBadge } from "./TaskStatusBadge";
-import { DeadlineBadge } from "./DeadlineBadge";
+import { WeeklyTaskRow } from "./WeeklyTaskRow";
 import { cleanSelectStyles, SelectOption } from "./selectStyles";
-import { exportTasksToExcelCsv, formatWeeklySummaryReport } from "../services/taskParser";
+import {
+    exportTasksToExcelCsv,
+    formatWeeklySummaryReport,
+    isTaskInWeekView,
+} from "../services/taskParser";
 
 interface WeeklyTaskViewProps {
     currentMonth: string;
@@ -32,16 +32,6 @@ interface WeeklyTaskViewProps {
     onDeleteTask: (id: number, taskKey: string) => void;
     onUpdateStatus: (id: number, status: TaskStatus) => Promise<void>;
 }
-
-const ALL_STATUSES: TaskStatus[] = [
-    "To do",
-    "In process",
-    "Dev testing",
-    "Deploy",
-    "Done",
-    "Close",
-    "Reject",
-];
 
 const STATUS_FILTER_OPTIONS: SelectOption[] = [
     { value: "ALL", label: "Tất cả trạng thái" },
@@ -104,7 +94,7 @@ export const WeeklyTaskView: React.FC<WeeklyTaskViewProps> = ({
 
     const filteredTasks = useMemo(() => {
         return tasks.filter((t) => {
-            if (t.week_of_month !== selectedWeek) return false;
+            if (!isTaskInWeekView(t, selectedWeek)) return false;
             if (filterStatus !== "ALL" && t.status !== filterStatus) return false;
             if (filterCategory !== "ALL" && t.category !== filterCategory) return false;
             if (searchQuery.trim()) {
@@ -119,14 +109,16 @@ export const WeeklyTaskView: React.FC<WeeklyTaskViewProps> = ({
     }, [tasks, selectedWeek, filterStatus, filterCategory, searchQuery]);
 
     const weekStats = useMemo(() => {
-        const currentWeekTasks = tasks.filter((t) => t.week_of_month === selectedWeek);
+        const weekTasks = tasks.filter((t) => isTaskInWeekView(t, selectedWeek));
+        const carriedOver = weekTasks.filter((t) => t.week_of_month < selectedWeek).length;
         return {
-            total: currentWeekTasks.length,
-            done: currentWeekTasks.filter((t) => t.status === "Done" || t.status === "Close").length,
-            inProgress: currentWeekTasks.filter(
+            total: weekTasks.length,
+            carriedOver,
+            done: weekTasks.filter((t) => t.status === "Done" || t.status === "Close").length,
+            inProgress: weekTasks.filter(
                 (t) => t.status === "In process" || t.status === "Dev testing" || t.status === "Deploy"
             ).length,
-            todo: currentWeekTasks.filter((t) => t.status === "To do").length,
+            todo: weekTasks.filter((t) => t.status === "To do").length,
         };
     }, [tasks, selectedWeek]);
 
@@ -197,7 +189,7 @@ export const WeeklyTaskView: React.FC<WeeklyTaskViewProps> = ({
                     <div className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-slate-50/80 p-0.5 shadow-2xs">
                         {[1, 2, 3, 4, 5].map((w) => {
                             const isSelected = selectedWeek === w;
-                            const countInWeek = tasks.filter((t) => t.week_of_month === w).length;
+                            const countInWeek = tasks.filter((t) => isTaskInWeekView(t, w)).length;
                             return (
                                 <button
                                     key={w}
@@ -332,6 +324,14 @@ export const WeeklyTaskView: React.FC<WeeklyTaskViewProps> = ({
 
                 <div className="flex items-center space-x-2 text-xs">
                     <span className="text-slate-500">Tổng: <strong>{weekStats.total}</strong></span>
+                    {weekStats.carriedOver > 0 && (
+                        <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                Tồn tuần trước: {weekStats.carriedOver}
+                            </span>
+                        </>
+                    )}
                     <span className="text-slate-300">|</span>
                     <span className="text-emerald-600 font-semibold">Done: {weekStats.done}</span>
                     <span className="text-slate-300">|</span>
@@ -380,105 +380,16 @@ export const WeeklyTaskView: React.FC<WeeklyTaskViewProps> = ({
                                 </tr>
                             ) : (
                                 filteredTasks.map((task, idx) => (
-                                    <tr
+                                    <WeeklyTaskRow
                                         key={task.id}
-                                        className="hover:bg-indigo-50/40 transition-colors group"
-                                    >
-                                        <td className="py-3.5 px-3.5 text-center text-slate-400 font-mono">
-                                            {idx + 1}
-                                        </td>
-                                        <td className="py-3.5 px-3.5 whitespace-nowrap">
-                                            {task.task_url ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenJiraLink(task.task_url)}
-                                                    title={`Mở task ${task.task_key} trên Jira`}
-                                                    aria-label={`Mở ${task.task_key}`}
-                                                    className="inline-flex items-center space-x-1 font-mono font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
-                                                >
-                                                    <span>{task.task_key}</span>
-                                                    <ExternalLink className="h-3 w-3 opacity-60" />
-                                                </button>
-                                            ) : (
-                                                <span className="font-mono font-bold text-slate-700">
-                                                    {task.task_key}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-3.5 px-3.5 whitespace-nowrap">
-                                            {task.category ? (
-                                                <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 font-bold text-slate-700 text-[11px] border border-slate-200">
-                                                    {task.category}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="py-3.5 px-3.5 font-medium text-slate-800">
-                                            <p className="line-clamp-2 leading-relaxed">
-                                                {task.title}
-                                            </p>
-                                        </td>
-                                        {/* Cột Hạn Chót (Deadline) với cảnh báo Đỏ / Vàng */}
-                                        <td className="py-3.5 px-3.5 whitespace-nowrap">
-                                            <DeadlineBadge deadline={task.deadline} status={task.status} />
-                                        </td>
-                                        <td className="py-3.5 px-3.5 whitespace-nowrap">
-                                            <div className="relative group/status">
-                                                <button
-                                                    type="button"
-                                                    aria-label={`Trạng thái ${task.status}`}
-                                                    className="cursor-pointer"
-                                                >
-                                                    <TaskStatusBadge status={task.status} />
-                                                </button>
-
-                                                <div className="hidden group-hover/status:flex absolute left-0 top-full z-20 mt-1 flex-col rounded-lg border border-slate-200 bg-white p-1 shadow-lg min-w-[140px]">
-                                                    {ALL_STATUSES.map((st) => (
-                                                        <button
-                                                            key={st}
-                                                            type="button"
-                                                            onClick={() => onUpdateStatus(task.id, st)}
-                                                            className={`px-2 py-1 text-left rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                                                                task.status === st
-                                                                    ? "bg-indigo-50 text-indigo-700 font-bold"
-                                                                    : "hover:bg-slate-50 text-slate-700"
-                                                            }`}
-                                                        >
-                                                            {st}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-3.5 px-3.5 text-slate-500">
-                                            {task.note ? (
-                                                <span className="line-clamp-1">{task.note}</span>
-                                            ) : (
-                                                <span className="text-slate-300">-</span>
-                                            )}
-                                        </td>
-                                        <td className="py-3.5 px-3.5 text-right whitespace-nowrap">
-                                            <div className="inline-flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onEditTask(task)}
-                                                    aria-label={`Sửa task ${task.task_key}`}
-                                                    className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors cursor-pointer"
-                                                >
-                                                    <Edit2 className="h-3.5 w-3.5" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onDeleteTask(task.id, task.task_key)}
-                                                    aria-label={`Xóa task ${task.task_key}`}
-                                                    className="p-1.5 rounded-md text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                        task={task}
+                                        index={idx}
+                                        selectedWeek={selectedWeek}
+                                        onOpenJiraLink={handleOpenJiraLink}
+                                        onUpdateStatus={onUpdateStatus}
+                                        onEditTask={onEditTask}
+                                        onDeleteTask={onDeleteTask}
+                                    />
                                 ))
                             )}
                         </tbody>

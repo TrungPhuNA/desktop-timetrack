@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Header } from "./components/Header";
 import { FreelanceView } from "./components/FreelanceView";
 import { WeeklyTaskView } from "./components/WeeklyTaskView";
+import { SeoStudioView } from "./components/seo/SeoStudioView";
 import { AppModals, ConfirmState } from "./components/AppModals";
 import { checkFocusSchedule, FocusSoundTheme, playFocusChimeSound, sendNativeFocusNotification } from "./services/focusScheduler";
 import { api } from "./services/api";
@@ -40,8 +41,8 @@ const getCurrentRealMonth = (): string => {
  * Ứng dụng chính TimeTrack - Giao diện Sáng Sang Trọng (Clean Light Theme)
  */
 export default function App() {
-    // Phân hệ đang hoạt động (Chấm công freelance hoặc Task công ty theo tuần)
-    const [activeTab, setActiveTab] = useState<"freelance" | "tasks">("freelance");
+    // Phân hệ đang hoạt động (Chấm công freelance, Task công ty theo tuần hoặc SEO Writer Studio)
+    const [activeTab, setActiveTab] = useState<"freelance" | "tasks" | "seo">("freelance");
 
     // Tháng hiện tại được chọn (Tự động lấy tháng thực tế hiện tại của hệ thống)
     const [currentMonth, setCurrentMonth] = useState<string>(getCurrentRealMonth);
@@ -357,7 +358,7 @@ export default function App() {
             />
 
             {/* Nội dung chính */}
-            <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+            <main className={`flex-1 w-full mx-auto p-6 space-y-6 ${activeTab === "seo" ? "max-w-[1440px]" : "max-w-7xl"}`}>
                 {activeTab === "freelance" ? (
                     <FreelanceView
                         loading={loading}
@@ -372,7 +373,7 @@ export default function App() {
                         onDeleteEntry={handleDeleteEntry}
                         onDuplicateEntry={handleDuplicateEntry}
                     />
-                ) : (
+                ) : activeTab === "tasks" ? (
                     <WeeklyTaskView
                         currentMonth={currentMonth}
                         onChangeMonth={setCurrentMonth}
@@ -387,6 +388,8 @@ export default function App() {
                         onDeleteTask={handleDeleteTask}
                         onUpdateStatus={handleUpdateTaskStatus}
                     />
+                ) : (
+                    <SeoStudioView />
                 )}
             </main>
 

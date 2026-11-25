@@ -140,6 +140,9 @@ impl Database {
             [],
         );
 
+        // Khởi tạo 6 bảng dữ liệu cho phân hệ SEO Content Studio
+        crate::seo::db_schema::init_seo_tables(&conn)?;
+
         Ok(())
     }
 
@@ -147,6 +150,9 @@ impl Database {
     fn seed_defaults(&self) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        // Seed 5 Prompt Template chuẩn SEO tiếng Việt
+        crate::seo::db_schema::seed_seo_defaults(&conn)?;
 
         // Cài đặt ban đầu
         conn.execute(

@@ -1,12 +1,15 @@
 mod commands;
 mod db;
 mod models;
+mod seo;
 
 use std::path::PathBuf;
 use tauri::Manager;
 
 use commands::*;
 use db::Database;
+use seo::commands::*;
+use seo::SeoStreamState;
 
 /// Hàm khởi chạy chính của ứng dụng Tauri TimeTrack
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,8 +28,9 @@ pub fn run() {
             let database = Database::new(db_path)
                 .expect("Không thể khởi tạo cơ sở dữ liệu SQLite cho TimeTrack");
 
-            // Đưa Database vào Tauri State để các command sử dụng an toàn thread-safe
+            // Đưa Database và SeoStreamState vào Tauri State để các command sử dụng an toàn thread-safe
             app.manage(database);
+            app.manage(SeoStreamState::default());
 
             Ok(())
         })
@@ -57,6 +61,31 @@ pub fn run() {
             cmd_update_task_status,
             cmd_batch_create_weekly_tasks,
             cmd_export_excel_file,
+            // Phân hệ SEO Content Studio
+            cmd_seo_get_ai_configs,
+            cmd_seo_save_ai_config,
+            cmd_seo_delete_ai_config,
+            cmd_seo_test_ai_connection,
+            cmd_seo_get_sites,
+            cmd_seo_save_site,
+            cmd_seo_delete_site,
+            cmd_seo_get_internal_links,
+            cmd_seo_sync_sitemap,
+            cmd_seo_get_templates,
+            cmd_seo_save_template,
+            cmd_seo_delete_template,
+            cmd_seo_get_articles,
+            cmd_seo_get_article_detail,
+            cmd_seo_create_article,
+            cmd_seo_update_article,
+            cmd_seo_delete_article,
+            cmd_seo_crawl_competitors,
+            cmd_seo_stop_generation,
+            cmd_seo_generate_outline,
+            cmd_seo_generate_article,
+            cmd_seo_rewrite_selection,
+            cmd_seo_generate_meta_faq,
+            cmd_seo_get_usage_summary,
         ])
         .run(tauri::generate_context!())
         .expect("Lỗi khi khởi chạy ứng dụng TimeTrack");

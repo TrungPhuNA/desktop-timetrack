@@ -8,13 +8,14 @@ import {
     FolderKanban,
     Plus,
     Settings,
+    Sparkles,
     Timer,
     VolumeX,
 } from "lucide-react";
 
 interface HeaderProps {
-    activeTab: "freelance" | "tasks";
-    onTabChange: (tab: "freelance" | "tasks") => void;
+    activeTab: "freelance" | "tasks" | "seo";
+    onTabChange: (tab: "freelance" | "tasks" | "seo") => void;
     currentMonth: string; // YYYY-MM
     onChangeMonth: (newMonth: string) => void;
     onOpenCreateEntry: () => void;
@@ -117,6 +118,20 @@ export const Header: React.FC<HeaderProps> = ({
                         >
                             <CheckSquare className="h-3.5 w-3.5 text-indigo-600" />
                             <span>Task Công Ty Theo Tuần</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => onTabChange("seo")}
+                            aria-label="Chuyển sang tab SEO Writer Studio"
+                            className={`inline-flex h-8 items-center space-x-1.5 rounded-lg px-3 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                activeTab === "seo"
+                                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs"
+                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                            }`}
+                        >
+                            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                            <span>SEO Writer Studio</span>
                         </button>
                     </nav>
                 </div>
